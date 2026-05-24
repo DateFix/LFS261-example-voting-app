@@ -1,7 +1,9 @@
-[![Build Status](http://34.185.185.151:8080/job/instavote/job/worker-build/badge/icon)](http://34.185.185.151:8080/job/instavote/job/worker-build/)
-
 Example Voting App
 =========
+
+Worker Java App
+---------------
+- Build Status [![Build Status](http://34.185.185.151:8080/job/instavote/job/worker-build/badge/icon)](http://34.185.185.151:8080/job/instavote/job/worker-build/)
 
 Getting started
 ---------------
