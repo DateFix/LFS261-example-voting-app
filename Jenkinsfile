@@ -206,11 +206,10 @@ pipeline {
         echo 'Packaging vote app with docker'
         script {
           docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
-            // ./vote is the path to the Dockerfile that Jenkins will find from the Github repo
-            def voteImage = docker.build("datefix/vote:${env.BUILD_ID}", "./vote")
+            def voteImage = docker.build("datefix/vote:v${env.BUILD_ID}", './vote')
             voteImage.push()
             voteImage.push("${env.BRANCH_NAME}")
-            voteImage.push("latest")
+            voteImage.push('latest')
           }
         }
 
