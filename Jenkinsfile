@@ -36,9 +36,10 @@ pipeline {
         changeset '**/worker/**'
       }
       steps {
-        echo 'Running Unit Tets on worker app.'
+        echo 'Running Unit Test on worker app.'
         dir(path: 'worker') {
-          sh 'mvn clean test'
+          sh 'mvn clean test jacoco:report'
+	  sh 'find . -name jacoco.xml -print'
         }
 
       }
