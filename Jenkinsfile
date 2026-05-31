@@ -10,7 +10,6 @@ pipeline {
           image 'maven:3.9.8-sapmachine-21'
           args '-v $HOME/.m2:/root/.m2'
         }
-
       }
       when {
         changeset '**/worker/**'
@@ -20,7 +19,6 @@ pipeline {
         dir(path: 'worker') {
           sh 'mvn compile'
         }
-
       }
     }
 
@@ -30,18 +28,18 @@ pipeline {
           image 'maven:3.9.8-sapmachine-21'
           args '-v $HOME/.m2:/root/.m2'
         }
-
       }
       when {
-        changeset '**/worker/**'
-      }
+        branch 'master'
+      } 
       steps {
         echo 'Running Unit Test on worker app.'
         dir(path: 'worker') {
+          // Elindítjuk a teszteket és a JaCoCo riport generálást
           sh 'mvn clean test jacoco:report'
-	  sh 'find . -name jacoco.xml -print'
+          // Javított idézőjel hiba:
+          sh 'find . -name jacoco.xml -print'
         }
-
       }
     }
 
@@ -51,7 +49,6 @@ pipeline {
           image 'maven:3.9.8-sapmachine-21'
           args '-v $HOME/.m2:/root/.m2'
         }
-
       }
       when {
         branch 'master'
@@ -63,7 +60,6 @@ pipeline {
           sh 'mvn package -DskipTests'
           archiveArtifacts(artifacts: '**/target/*.jar', fingerprint: true)
         }
-
       }
     }
 
@@ -83,7 +79,6 @@ pipeline {
             workerImage.push('latest')
           }
         }
-
       }
     }
 
@@ -92,7 +87,6 @@ pipeline {
         docker {
           image 'node:22.4.0-alpine'
         }
-
       }
       when {
         changeset '**/result/**'
@@ -102,7 +96,6 @@ pipeline {
         dir(path: 'result') {
           sh 'npm install'
         }
-
       }
     }
 
@@ -111,7 +104,6 @@ pipeline {
         docker {
           image 'node:22.4.0-alpine'
         }
-
       }
       when {
         changeset '**/result/**'
@@ -122,7 +114,6 @@ pipeline {
           sh 'npm install'
           sh 'npm test'
         }
-
       }
     }
 
@@ -151,7 +142,6 @@ pipeline {
           image 'python:3.11-slim'
           args '--user root'
         }
-
       }
       when {
         changeset '**/vote/**'
@@ -161,7 +151,6 @@ pipeline {
         dir(path: 'vote') {
           sh 'pip install -r requirements.txt'
         }
-
       }
     }
 
@@ -171,7 +160,6 @@ pipeline {
           image 'python:3.11-slim'
           args '--user root'
         }
-
       }
       when {
         changeset '**/vote/**'
@@ -182,27 +170,30 @@ pipeline {
           sh 'pip install -r requirements.txt'
           sh 'nosetests -v'
         }
-
       }
     }
 
     stage('vote integration'){ 
-    agent any 
-    when{ 
-      changeset "**/vote/**" 
-      branch 'master' 
-    } 
-    steps{ 
-      echo 'Running Integration Tests on vote app' 
-      dir('vote'){ 
-        sh 'sh integration_test.sh' 
+      agent any 
+      when{ 
+        changeset "**/vote/**" 
+        branch 'master' 
+      } 
+      steps{ 
+        echo 'Running Integration Tests on vote app' 
+        dir('vote'){ 
+          sh 'sh integration_test.sh' 
+        } 
       } 
     } 
-} 
-
 
     stage('vote-docker-package') {
       agent any
+      // JAVÍTÁS: Hozzáadva a hiányzó feltétel, hogy ne fusson feleslegesen
+      when {
+        changeset '**/vote/**'
+        branch 'master'
+      }
       steps {
         echo 'Packaging vote app with docker'
         script {
@@ -213,46 +204,40 @@ pipeline {
             voteImage.push('latest')
           }
         }
-
       }
     }
-  
 
     stage('Sonarqube'){
-	agent any
-	when{
-	 branch 'master'
-	}
-	environment{
-	 sonarpath = tool 'SonarScanner'
-	}
-	steps{
-	 echo 'Running Sonarqube Analysis..'
-	 withSonarQubeEnv('sonar-instavote') {
-	  sh "${sonarpath}/bin/sonar-scanner  -Dproject.settings=sonar-project.properties -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECKINTERVAL=86400 "
-	 }
-	}
+      agent any
+      environment {
+        sonarpath = tool 'SonarScanner'
+      }
+      steps {
+        echo 'Running Sonarqube Analysis..'
+        withSonarQubeEnv('sonar-instavote') {
+          // Kiegészítve a JaCoCo elérési út dinamikus átadásával, ha a properties fájlban nem lenne benne
+          sh "${sonarpath}/bin/sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.coverage.jacoco.xmlReportPaths=worker/target/site/jacoco/jacoco.xml -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECKINTERVAL=86400"
+        }
+      }
     }
 
-   stage('Quality Gate'){
-	steps {
-		timeout(time: 1, unit: 'HOURS'){
-			//Parameter inidicates whether to set pipeline to UNSTABLE if quality Gate fails
-			//true = set pipeline to UNSTABLE, false = don't
-			waitForQualityGate abortPipeline: true
-		}
-	}
-  }
-  
-
-   stage('deploy to dev') {
+    stage('Quality Gate'){
+      agent any 
+      steps {
+        timeout(time: 1, unit: 'HOURS'){
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+    
+    stage('deploy to dev') {
       agent any
       when {
         branch 'master'
       }
       steps {
         echo 'Deploy instavote app with docker compose'
-        sh 'docker-compose up -d'
+        sh 'docker compose up -d'
       }
     }
     
