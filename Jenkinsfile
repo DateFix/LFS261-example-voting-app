@@ -32,9 +32,9 @@ pipeline {
         }
 
       }
-      when {
-        changeset '**/worker/**'
-      }
+     
+       
+      
       steps {
         echo 'Running Unit Test on worker app.'
         dir(path: 'worker') {
