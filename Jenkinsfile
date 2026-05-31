@@ -33,7 +33,9 @@ pipeline {
 
       }
      
-       
+      when{
+		branch 'master'
+	} 
       
       steps {
         echo 'Running Unit Test on worker app.'
